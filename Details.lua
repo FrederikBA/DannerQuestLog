@@ -42,7 +42,12 @@ local function NextString(font)
     fs:SetFontObject(font or "GameFontHighlight")
     fs:SetTextColor(C.text[1], C.text[2], C.text[3])
     fs:SetWidth(width - PAD * 2 - indent)
+    -- Pooled strings keep the height from their last use, which would clip
+    -- longer text with "...". Reset so the full wrapped text is measured.
+    fs:SetHeight(0)
+    fs:SetMaxLines(0)
     fs:SetWordWrap(true)
+    fs:SetNonSpaceWrap(true)
     fs:Show()
     return fs
 end
