@@ -1,0 +1,18 @@
+## Interface: 16001
+## Title: |cff0cd29fDanner|rQuestLog
+## Notes: Extended quest log for WoW Forever: a standalone list + details window that replaces the map quest log on the quest log key and micro button. Port of Extended QuestLog 3 (EQL3).
+## Author: Danner
+## Version: 1.0
+## X-Category: Quests
+## X-Original: Extended QuestLog 3 by Daniel Rehn (Vividz reskin)
+## OptionalDeps: EllesmereUI
+## SavedVariables: DannerQuestLogDB
+## SavedVariablesPerCharacter: DannerQuestLogCharDB
+
+Core.lua
+Data.lua
+Widgets.lua
+List.lua
+Details.lua
+Frame.lua
+Options.lua
