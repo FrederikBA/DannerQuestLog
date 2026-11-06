@@ -80,12 +80,10 @@ ns.DEFAULTS = {
     restoreOnSelect = true,   -- selecting a quest opens the details pane
     minimizeOnClose = false,  -- closing the window folds the details pane
     hideCompletedObjectives = false,
-    locked = false,
     scale = 1,
     opacity = 0.95,           -- background opacity
     announceComplete = false, -- "<quest> completed!" + sound
     autoComplete = false,     -- turn in completable quests (Shift skips)
-    point = nil,              -- { left, top } in UIParent coordinates
 }
 ns.CHAR_DEFAULTS = {
     collapsed = {},  -- [groupName] = true

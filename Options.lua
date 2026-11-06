@@ -19,7 +19,6 @@ local CHECKS = {
     { "restoreOnSelect", "Open details on select", "Selecting a quest opens the details pane when it is folded away." },
     { "minimizeOnClose", "Fold details on close", "Closing the window folds the details pane away." },
     { "hideCompletedObjectives", "Hide completed objectives", "Hide objectives that are already done in the details pane." },
-    { "locked", "Lock window", "Stop the window from being dragged." },
     { "announceComplete", "Announce completed quests", "Show \"<quest> completed!\" on screen with a sound when a quest's objectives are all done." },
     { "autoComplete", "Auto turn-in quests", "Turn in completed quests automatically when talking to the quest giver, unless there is a reward to choose. Hold Shift to skip." },
 }
@@ -89,11 +88,8 @@ local function Create()
     panel.opacity = opacity
     y = y - 46
 
-    local resetPos = ns.CreateButton(panel, "Reset position", 118, 22)
-    resetPos:SetPoint("TOPLEFT", 14, y)
-    resetPos:SetScript("OnClick", function() ns.ResetPosition() end)
-    local resetGroups = ns.CreateButton(panel, "Reset quest groups", 118, 22)
-    resetGroups:SetPoint("LEFT", resetPos, "RIGHT", 4, 0)
+    local resetGroups = ns.CreateButton(panel, "Reset quest groups", 140, 22)
+    resetGroups:SetPoint("TOPLEFT", 14, y)
     resetGroups:SetScript("OnClick", function() ns.ResetAllGroups() end)
     resetGroups.tooltip = "Move every quest back to its original zone group."
 
@@ -127,11 +123,8 @@ SlashCmdList.DANNERQUESTLOG = function(msg)
     if msg == "" or msg == "toggle" then
         ns.Toggle()
     elseif msg == "options" or msg == "config" then
-        if not ns.frame:IsShown() then ns.frame:Show() end
+        ns.OpenWindow()
         ns.ToggleOptions()
-    elseif msg == "reset" then
-        ns.ResetPosition()
-        ns.Print("window position reset.")
     elseif msg == "replace" then
         ns.db.replaceQuestLog = not ns.db.replaceQuestLog
         ns.ApplyReplacement()
@@ -139,7 +132,6 @@ SlashCmdList.DANNERQUESTLOG = function(msg)
     else
         ns.Print("/dql - toggle the quest log")
         ns.Print("/dql options - open the options")
-        ns.Print("/dql reset - reset the window position")
         ns.Print("/dql replace - toggle replacing the map quest log")
     end
 end

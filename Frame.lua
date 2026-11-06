@@ -23,36 +23,62 @@ local lastDetailQuest
 
 --------------------------------------------------------------------------------
 --  Position and look
+--
+--  The window is a standard UI panel (UIPanelWindows, like EQL3's own frame):
+--  the game places it on the left, pushes it aside or closes it when the
+--  character pane, spellbook, full screen map and so on open, and closes it on
+--  Escape. It cannot be dragged. ShowUIPanel is refused for addon frames in
+--  combat, so there we fall back to a plain Show at the default panel spot.
 --------------------------------------------------------------------------------
-local function SavePosition()
-    local left, top = frame:GetLeft(), frame:GetTop()
-    if left and top then ns.db.point = { left, top } end
+UIPanelWindows["DannerQuestLogFrame"] = { area = "left", pushable = 1, whileDead = 1 }
+
+local function DefaultAnchor()
+    frame:ClearAllPoints()
+    frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 16, -116)
 end
 
-function ns.RestorePosition()
-    frame:ClearAllPoints()
-    local p = ns.db.point
-    if p and p[1] and p[2] then
-        frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", p[1], p[2])
-    else
-        frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 16, -116)
+-- Re-run the panel layout after a size or scale change.
+local function Relayout()
+    if frame:IsShown() and not InCombatLockdown() and UpdateUIPanelPositions then
+        UpdateUIPanelPositions(frame)
     end
 end
 
-function ns.ResetPosition()
-    ns.db.point = nil
-    ns.RestorePosition()
+function ns.OpenWindow()
+    if frame:IsShown() then return end
+    if InCombatLockdown() or not ShowUIPanel then
+        frame:Show()
+    else
+        ShowUIPanel(frame)
+    end
+    if not frame:IsShown() then
+        -- The panel manager refused it; show it on its own instead.
+        DefaultAnchor()
+        frame:Show()
+    end
+end
+
+function ns.CloseWindow()
+    if not frame:IsShown() then return end
+    if InCombatLockdown() or not HideUIPanel then
+        frame:Hide()
+    else
+        HideUIPanel(frame)
+    end
+    if frame:IsShown() then frame:Hide() end
 end
 
 function ns.ApplyLook()
     if not frame then return end
     frame:SetScale(ns.db.scale or 1)
     frame:SetBackdropColor(C.bg[1], C.bg[2], C.bg[3], ns.db.opacity or 0.95)
+    Relayout()
 end
 
 function ns.SetDetailsShown(show)
     ns.db.showDetails = show and true or false
     frame:SetWidth(LIST_W + (show and DETAIL_W or 0))
+    Relayout()
     ns.detailPane:SetShown(show)
     buttons.details.label:SetText(show and "<" or ">")
     buttons.details.tooltip = show and L.HIDE_DETAILS or L.SHOW_DETAILS
@@ -117,16 +143,16 @@ end
 function ns.Toggle()
     if not frame then return end
     if frame:IsShown() then
-        frame:Hide()
+        ns.CloseWindow()
     else
-        frame:Show()
+        ns.OpenWindow()
     end
 end
 
 function ns.Show(questID)
     if not frame then return end
     if questID then ns.selectedQuestID = questID end
-    frame:Show()
+    ns.OpenWindow()
     ns.Refresh()
     ns.ScrollToSelected()
 end
@@ -143,29 +169,17 @@ function ns.CreateWindow()
     frame:SetFrameStrata("MEDIUM")
     frame:SetToplevel(true)
     frame:SetClampedToScreen(true)
-    frame:SetMovable(true)
     frame:EnableMouse(true)
     ns.Backdrop(frame, C.bg[1], C.bg[2], C.bg[3], 0.95)
+    -- Escape closes it even when it was opened outside the panel system.
     tinsert(UISpecialFrames, "DannerQuestLogFrame")
 
-    -- Title bar (drag handle)
+    -- Title bar
     local bar = CreateFrame("Frame", nil, frame)
     bar:SetPoint("TOPLEFT", 1, -1)
     bar:SetPoint("TOPRIGHT", -1, -1)
     bar:SetHeight(TITLE_H)
     bar:EnableMouse(true)
-    bar:RegisterForDrag("LeftButton")
-    bar:SetScript("OnDragStart", function()
-        if not ns.db.locked then frame:StartMoving() end
-    end)
-    bar:SetScript("OnDragStop", function()
-        frame:StopMovingOrSizing()
-        frame:SetUserPlaced(false)  -- our saved variables hold the position
-        SavePosition()
-        -- StartMoving re-anchors to the screen; restore our TOPLEFT anchor so
-        -- folding the details pane keeps the left edge in place.
-        ns.RestorePosition()
-    end)
     local strip = ns.Solid(bar, "BACKGROUND", 0, 0, 0, 0.35)
     strip:SetAllPoints()
     local line = ns.Solid(bar, "BORDER", AR, AG, AB, 0.6)
@@ -183,7 +197,7 @@ function ns.CreateWindow()
 
     local close = ns.CreateIconButton(bar, 18, "x")
     close:SetPoint("RIGHT", -4, 0)
-    close:SetScript("OnClick", function() frame:Hide() end)
+    close:SetScript("OnClick", function() ns.CloseWindow() end)
     close.tooltip = CLOSE
 
     local details = ns.CreateIconButton(bar, 18, "<")
@@ -282,7 +296,7 @@ function ns.CreateWindow()
         search:ClearFocus()
     end)
 
-    ns.RestorePosition()
+    DefaultAnchor()
     ns.ApplyLook()
     ns.SetDetailsShown(ns.db.showDetails)
     return frame
