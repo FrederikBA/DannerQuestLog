@@ -15,6 +15,7 @@ local CHECKS = {
         function() ns.ApplyReplacement() end },
     { "showLevels", "Show quest levels", "Prefix quest titles with their level, e.g. [24+]. A + marks elite / group quests." },
     { "showTags", "Show quest tags", "Show tags such as (Elite) or (Dungeon) after the title." },
+    { "showXP", "Show quest experience", "Show the experience each quest rewards on the right of its row." },
     { "showPartyCount", "Show party members on quest", "Show [n] for the number of party members who have the quest." },
     { "restoreOnSelect", "Open details on select", "Selecting a quest opens the details pane when it is folded away." },
     { "minimizeOnClose", "Fold details on close", "Closing the window folds the details pane away." },

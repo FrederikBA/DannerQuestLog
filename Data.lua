@@ -14,6 +14,11 @@ local expandedOnce = {}  -- game headers we have already expanded this session
 --------------------------------------------------------------------------------
 --  Per-quest helpers
 --------------------------------------------------------------------------------
+local function QuestXP(questID)
+    if not GetQuestLogRewardXP then return 0 end
+    return GetQuestLogRewardXP(questID) or 0
+end
+
 local function QuestTag(questID)
     if not C_QuestLog.GetQuestTagInfo then return end
     local info = C_QuestLog.GetQuestTagInfo(questID)
@@ -242,6 +247,7 @@ function ns.BuildLog()
                     complete = C_QuestLog.IsComplete(id) == true,
                     failed = C_QuestLog.IsFailed and C_QuestLog.IsFailed(id) == true,
                     tag = QuestTag(id),
+                    xp = QuestXP(id),
                     watched = ns.IsWatched(id),
                     custom = custom[id] ~= nil,
                 }

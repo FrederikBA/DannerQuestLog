@@ -202,8 +202,12 @@ local function CreateRow(index)
     r.check:SetSize(14, 14)
     r.check:SetPoint("LEFT", 3, 0)
 
+    r.xp = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    r.xp:SetPoint("RIGHT", -4, 0)
+    r.xp:SetJustifyH("RIGHT")
+
     r.tag = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    r.tag:SetPoint("RIGHT", -4, 0)
+    r.tag:SetPoint("RIGHT", r.xp, "LEFT", 0, 0)
     r.tag:SetJustifyH("RIGHT")
 
     r.party = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -234,6 +238,7 @@ local function SetupHeader(r, data)
     r.text:SetText(data.group.name)
     r.text:SetTextColor(C.header[1], C.header[2], C.header[3])
     r.party:SetText("")
+    r.xp:SetText("")
     r.tag:SetText(data.count)
     r.tag:SetTextColor(C.dim[1], C.dim[2], C.dim[3])
 end
@@ -270,6 +275,14 @@ local function SetupQuest(r, data)
     end
     r.tag:SetText(tag or "")
     r.tag:SetTextColor(cr, cg, cb)
+
+    local xp = db.showXP and q.xp or 0
+    if xp > 0 then
+        r.xp:SetText(" " .. (BreakUpLargeNumbers and BreakUpLargeNumbers(xp) or xp) .. " xp")
+    else
+        r.xp:SetText("")
+    end
+    r.xp:SetTextColor(C.dim[1], C.dim[2], C.dim[3])
 
     local n = 0
     if db.showPartyCount and IsInGroup() and not IsInRaid() then

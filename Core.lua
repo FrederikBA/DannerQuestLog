@@ -76,6 +76,7 @@ ns.DEFAULTS = {
     showLevels = true,        -- "[12+] Title"
     showTags = true,          -- (Elite) / (Complete) / (Failed) after the title
     showPartyCount = true,    -- "[2]" party members on the quest
+    showXP = true,            -- reward XP on the right of each quest row
     showDetails = true,       -- window state: details pane open (EQL3 maximized)
     restoreOnSelect = true,   -- selecting a quest opens the details pane
     minimizeOnClose = false,  -- closing the window folds the details pane
