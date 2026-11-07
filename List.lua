@@ -13,10 +13,12 @@
 local _, ns = ...
 local L = ns.L
 local C = ns.COLORS
-local AR, AG, AB = ns.ACCENT[1], ns.ACCENT[2], ns.ACCENT[3]
+local A = ns.ACCENT
 
-local ROW_H = 16
+local ROW_H = 18
 ns.ROW_H = ROW_H
+local HEADER_TEXT_X = 22  -- after the plus / minus marker
+local QUEST_TEXT_X = 28   -- quests sit indented under their header
 local rows = {}
 
 --------------------------------------------------------------------------------
@@ -183,9 +185,9 @@ local function CreateRow(index)
 
     r.band = ns.Solid(r, "BACKGROUND", 1, 1, 1, 0.05)
     r.band:SetAllPoints()
-    r.sel = ns.Solid(r, "BORDER", AR, AG, AB, 0.22)
+    r.sel = r:CreateTexture(nil, "BORDER")
     r.sel:SetAllPoints()
-    r.selBar = ns.Solid(r, "ARTWORK", AR, AG, AB, 1)
+    r.selBar = ns.Solid(r, "ARTWORK", A[1], A[2], A[3], 1)
     r.selBar:SetPoint("TOPLEFT")
     r.selBar:SetPoint("BOTTOMLEFT")
     r.selBar:SetWidth(2)
@@ -193,20 +195,19 @@ local function CreateRow(index)
     hl:SetAllPoints()
     hl:SetColorTexture(1, 1, 1, 0.08)
 
-    r.expander = r:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    r.expander:SetPoint("LEFT", 4, 0)
-    r.expander:SetWidth(10)
+    r.marker = ns.CreateExpandMarker(r, 14)
+    r.marker.icon:SetPoint("LEFT", 3, 0)
 
     r.check = r:CreateTexture(nil, "OVERLAY")
     r.check:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
     r.check:SetSize(14, 14)
-    r.check:SetPoint("LEFT", 3, 0)
+    r.check:SetPoint("LEFT", QUEST_TEXT_X - 15, 0)
 
     r.xp = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     r.xp:SetPoint("RIGHT", -4, 0)
     r.xp:SetJustifyH("RIGHT")
 
-    r.tag = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    r.tag = r:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     r.tag:SetPoint("RIGHT", r.xp, "LEFT", 0, 0)
     r.tag:SetJustifyH("RIGHT")
 
@@ -214,7 +215,7 @@ local function CreateRow(index)
     r.party:SetPoint("RIGHT", r.tag, "LEFT", -3, 0)
 
     r.text = r:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    r.text:SetPoint("LEFT", 18, 0)
+    r.text:SetPoint("LEFT", QUEST_TEXT_X, 0)
     r.text:SetPoint("RIGHT", r.party, "LEFT", -4, 0)
     r.text:SetJustifyH("LEFT")
     r.text:SetWordWrap(false)
@@ -225,21 +226,42 @@ local function CreateRow(index)
     return r
 end
 
+-- Selection bar: the game's quest title highlight tinted with the quest's
+-- difficulty colour (standard), or an accent tint with a left bar (dark).
+local function PaintSelection(r, cr, cg, cb)
+    local sel = r.sel
+    if C.selectByDifficulty then
+        if ns.TrySetTexture(sel, ns.TEX.TITLE_HL) then
+            sel:SetBlendMode("ADD")
+            sel:SetVertexColor(cr, cg, cb, 0.9)
+            return
+        end
+        sel:SetColorTexture(cr, cg, cb, 0.4)
+    else
+        sel:SetColorTexture(A[1], A[2], A[3], 0.22)
+        r.selBar:SetColorTexture(A[1], A[2], A[3], 1)
+    end
+    sel:SetBlendMode("BLEND")
+    sel:SetVertexColor(1, 1, 1, 1)
+end
+
 local function SetupHeader(r, data)
-    r.band:Show()
+    r.band:SetShown(not C.blizzard)
     r.sel:Hide()
     r.selBar:Hide()
     r.check:Hide()
-    r.expander:Show()
-    r.expander:SetText(data.collapsed and "+" or "-")
-    r.expander:SetTextColor(AR, AG, AB)
+    if C.selectByDifficulty then
+        ns.SetExpandMarker(r.marker, data.collapsed, C.header[1], C.header[2], C.header[3])
+    else
+        ns.SetExpandMarker(r.marker, data.collapsed)
+    end
     r.text:SetFontObject("GameFontNormal")
-    r.text:SetPoint("LEFT", 16, 0)
+    r.text:SetPoint("LEFT", HEADER_TEXT_X, 0)
     r.text:SetText(data.group.name)
     r.text:SetTextColor(C.header[1], C.header[2], C.header[3])
     r.party:SetText("")
     r.xp:SetText("")
-    r.tag:SetText(data.count)
+    r.tag:SetText(C.headerCount and data.count or "")
     r.tag:SetTextColor(C.dim[1], C.dim[2], C.dim[3])
 end
 
@@ -249,9 +271,12 @@ local function SetupQuest(r, data)
     local selected = q.questID == ns.selectedQuestID
 
     r.band:Hide()
-    r.expander:Hide()
+    r.marker.icon:Hide()
+    r.marker.glyph:Hide()
+    local cr, cg, cb = ns.DifficultyColor(q.level)
     r.sel:SetShown(selected)
-    r.selBar:SetShown(selected)
+    r.selBar:SetShown(selected and not C.selectByDifficulty)
+    if selected then PaintSelection(r, cr, cg, cb) end
     r.check:SetShown(q.watched)
 
     local title = q.title
@@ -260,9 +285,11 @@ local function SetupQuest(r, data)
         title = "[" .. q.level .. plus .. "] " .. title
     end
     r.text:SetFontObject("GameFontHighlight")
-    r.text:SetPoint("LEFT", 18, 0)
+    r.text:SetPoint("LEFT", QUEST_TEXT_X, 0)
     r.text:SetText(title)
-    local cr, cg, cb = ns.DifficultyColor(q.level)
+    if selected and C.selectedText then
+        cr, cg, cb = C.selectedText[1], C.selectedText[2], C.selectedText[3]
+    end
     r.text:SetTextColor(cr, cg, cb)
 
     local tag

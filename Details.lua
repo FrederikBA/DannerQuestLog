@@ -8,7 +8,7 @@
 local _, ns = ...
 local L = ns.L
 local C = ns.COLORS
-local AR, AG, AB = ns.ACCENT[1], ns.ACCENT[2], ns.ACCENT[3]
+local A = ns.ACCENT
 
 local PAD = 6
 local ITEM_H = 38
@@ -30,6 +30,14 @@ end
 --------------------------------------------------------------------------------
 --  Pools
 --------------------------------------------------------------------------------
+-- Standard theme: the game's quest fonts (Morpheus headings), first one the
+-- client has wins.
+local QUEST_FONTS = {
+    GameFontNormalLarge = { "QuestTitleFontBlackShadow", "QuestTitleFont" },
+    GameFontHighlight = { "QuestFont" },
+    GameFontHighlightSmall = { "QuestFontNormalSmall", "QuestFont" },
+}
+
 local function NextString(font)
     usedStrings = usedStrings + 1
     local fs = strings[usedStrings]
@@ -39,8 +47,20 @@ local function NextString(font)
         fs:SetJustifyV("TOP")
         strings[usedStrings] = fs
     end
-    fs:SetFontObject(font or "GameFontHighlight")
-    fs:SetTextColor(C.text[1], C.text[2], C.text[3])
+    font = font or "GameFontHighlight"
+    if C.questFonts then
+        for _, quest in ipairs(QUEST_FONTS[font] or {}) do
+            if _G[quest] then
+                font = quest
+                break
+            end
+        end
+    end
+    fs:SetFontObject(font)
+    -- Light text on the stone and flat backgrounds needs its shadow.
+    fs:SetShadowColor(0, 0, 0, 1)
+    fs:SetShadowOffset(1, -1)
+    fs:SetTextColor(C.detailText[1], C.detailText[2], C.detailText[3])
     fs:SetWidth(width - PAD * 2 - indent)
     -- Pooled strings keep the height from their last use, which would clip
     -- longer text with "...". Reset so the full wrapped text is measured.
@@ -78,7 +98,7 @@ local function NextItem()
     local b = items[usedItems]
     if not b then
         b = CreateFrame("Button", nil, child, "BackdropTemplate")
-        ns.Backdrop(b, 0.12, 0.12, 0.13, 0.9)
+        ns.ThemedBackdrop(b, "itemBg")
         b:SetSize(math.floor((width - PAD * 2 - 4) / 2), ITEM_H)
 
         local iconHolder = CreateFrame("Frame", nil, b, "BackdropTemplate")
@@ -162,7 +182,8 @@ local function Text(str, font, gap, r, g, b)
 end
 
 local function Heading(str, gap)
-    return Text(str, "GameFontNormalLarge", gap or 12, AR, AG, AB)
+    local c = C.detailHeading
+    return Text(str, "GameFontNormalLarge", gap or 12, c[1], c[2], c[3])
 end
 
 -- Two-column grid of reward buttons, starting below the current position.
@@ -266,41 +287,52 @@ function ns.UpdateDetails(keepScroll)
     y = -PAD
 
     -- Title and level line
+    -- Standard theme, as the game's log: "[61] Title" with only the tags below.
     local title = q.title
+    if C.blizzard then title = "[" .. q.level .. "] " .. title end
     if q.failed then title = title .. " - (" .. L.FAILED .. ")" end
-    Text(title, "GameFontNormalLarge", 0, 1, 0.82, 0)
-    local sub = L.LEVEL .. " " .. q.level
-    if q.tag then sub = sub .. "  " .. q.tag end
+    Text(title, "GameFontNormalLarge", 0, C.detailTitle[1], C.detailTitle[2], C.detailTitle[3])
+    local parts = {}
+    if not C.blizzard then parts[#parts + 1] = L.LEVEL .. " " .. q.level end
+    if q.tag then parts[#parts + 1] = q.tag end
     if q.suggestedGroup and q.suggestedGroup > 1 then
-        sub = sub .. "  (" .. q.suggestedGroup .. ")"
+        parts[#parts + 1] = "(" .. q.suggestedGroup .. ")"
     end
-    if q.complete then sub = sub .. "  |cff33ff33" .. L.COMPLETE .. "|r" end
-    Text(sub, "GameFontHighlightSmall", 2, ns.DifficultyColor(q.level))
+    if q.complete then parts[#parts + 1] = "|cff" .. C.good .. L.COMPLETE .. "|r" end
+    local sub = table.concat(parts, "  ")
+    if sub == "" then
+        -- nothing to show
+    elseif C.detailLevelByDifficulty then
+        Text(sub, "GameFontHighlightSmall", 2, ns.DifficultyColor(q.level))
+    else
+        Text(sub, "GameFontHighlightSmall", 2)
+    end
 
     -- Objectives summary and timer
     local description, objectivesText = GetQuestLogQuestText(q.logIndex)
     if objectivesText and objectivesText ~= "" then
-        Text(objectivesText, "GameFontHighlight", 10)
+        Text(objectivesText, "GameFontHighlight", sub == "" and 4 or 10)
     end
     local left = TimeLeft(id)
     if left then
-        timer.fs = Text(L.TIME_REMAINING .. " " .. SecondsToTime(left), "GameFontHighlight", 8, 1, 0.82, 0)
+        timer.fs = Text(L.TIME_REMAINING .. " " .. SecondsToTime(left), "GameFontHighlight", 8,
+            C.detailTitle[1], C.detailTitle[2], C.detailTitle[3])
         timer.expires = GetTime() + left
     end
 
     -- Objective lines
     local objectives = C_QuestLog.GetQuestObjectives(id) or {}
     local first = true
-    indent = 8
+    indent = C.blizzard and 0 or 8
     for _, o in ipairs(objectives) do
         local text = o.text
         if not text or text == "" then text = o.type or "" end
         if not (o.finished and ns.db.hideCompletedObjectives) then
             local gap = first and 10 or 2
             if o.finished then
-                Text(text .. " (" .. L.COMPLETE .. ")", "GameFontHighlight", gap, C.dim[1], C.dim[2], C.dim[3])
+                Text(text .. " (" .. L.COMPLETE .. ")", "GameFontHighlight", gap, C.detailDim[1], C.detailDim[2], C.detailDim[3])
             else
-                Text(text, "GameFontHighlight", gap, 1, 1, 1)
+                Text(text, "GameFontHighlight", gap, C.detailObjective[1], C.detailObjective[2], C.detailObjective[3])
             end
             first = false
         end
@@ -312,7 +344,7 @@ function ns.UpdateDetails(keepScroll)
         or (GetQuestLogRequiredMoney and GetQuestLogRequiredMoney()) or 0
     if reqMoney > 0 then
         local fs = Text(L.REQUIRED_MONEY .. " " .. CoinString(reqMoney), "GameFontHighlight", 8)
-        if GetMoney() < reqMoney then fs:SetTextColor(1, 0.2, 0.2) end
+        if GetMoney() < reqMoney then fs:SetTextColor(C.bad[1], C.bad[2], C.bad[3]) end
     end
 
     -- Description

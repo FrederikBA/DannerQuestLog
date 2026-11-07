@@ -4,7 +4,7 @@
 --------------------------------------------------------------------------------
 local _, ns = ...
 local L = ns.L
-local AR, AG, AB = ns.ACCENT[1], ns.ACCENT[2], ns.ACCENT[3]
+local A = ns.ACCENT
 
 local panel
 
@@ -35,13 +35,13 @@ local function Create()
     panel:SetPoint("TOPLEFT", ns.frame, "TOPRIGHT", 4, 0)
     panel:SetFrameLevel(ns.frame:GetFrameLevel() + 20)
     panel:EnableMouse(true)
-    ns.Backdrop(panel, ns.COLORS.bg[1], ns.COLORS.bg[2], ns.COLORS.bg[3], 0.97)
+    ns.ThemedBackdrop(panel, "bg", 0.97)
     panel:Hide()
 
     local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     title:SetPoint("TOPLEFT", 10, -9)
     title:SetText(L.TITLE .. " " .. L.OPTIONS)
-    title:SetTextColor(AR, AG, AB)
+    ns.Themed(title, function(t) t:SetTextColor(A[1], A[2], A[3]) end)
     local close = ns.CreateIconButton(panel, 18, "x")
     close:SetPoint("TOPRIGHT", -4, -4)
     close:SetScript("OnClick", function() panel:Hide() end)
@@ -89,10 +89,33 @@ local function Create()
     panel.opacity = opacity
     y = y - 46
 
-    local resetGroups = ns.CreateButton(panel, "Reset quest groups", 140, 22)
+    local resetGroups = ns.CreateButton(panel, "Reset quest groups", 130, 22)
     resetGroups:SetPoint("TOPLEFT", 14, y)
     resetGroups:SetScript("OnClick", function() ns.ResetAllGroups() end)
     resetGroups.tooltip = "Move every quest back to its original zone group."
+
+    -- Theme switch (was a swatch on the title bar).
+    local theme = ns.CreateButton(panel, "", 112, 22)
+    theme:SetPoint("LEFT", resetGroups, "RIGHT", 6, 0)
+    theme:SetScript("OnClick", function(self)
+        ns.CycleTheme()
+        if self:IsMouseOver() then self:GetScript("OnEnter")(self) end
+    end)
+    ns.Themed(theme, function(self)
+        local cur, nxt = ns.THEMES[ns.ThemeName()], ns.THEMES[ns.NextThemeName()]
+        self:SetText(L.THEME_BUTTON:format(cur.name))
+        self.tooltip = L.THEME_TOOLTIP:format(cur.name, nxt.name)
+    end)
+    y = y - 32
+
+    -- Click help (was the "?" on the title bar).
+    local help = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    help:SetPoint("TOPLEFT", 14, y)
+    help:SetWidth(240)
+    help:SetJustifyH("LEFT")
+    help:SetText(L.HELP_CLICKS)
+    ns.Themed(help, function(t) t:SetTextColor(ns.COLORS.dim[1], ns.COLORS.dim[2], ns.COLORS.dim[3]) end)
+    y = y - help:GetStringHeight() + 10
 
     panel:SetHeight(-y + 22 + 12)
     panel:SetScript("OnShow", function(self)
@@ -126,6 +149,9 @@ SlashCmdList.DANNERQUESTLOG = function(msg)
     elseif msg == "options" or msg == "config" then
         ns.OpenWindow()
         ns.ToggleOptions()
+    elseif msg == "theme" or msg == "dark" or msg == "standard" then
+        if msg == "theme" then ns.CycleTheme() else ns.SetTheme(msg) end
+        ns.Print("theme: " .. ns.THEMES[ns.ThemeName()].name)
     elseif msg == "replace" then
         ns.db.replaceQuestLog = not ns.db.replaceQuestLog
         ns.ApplyReplacement()
@@ -134,5 +160,6 @@ SlashCmdList.DANNERQUESTLOG = function(msg)
         ns.Print("/dql - toggle the quest log")
         ns.Print("/dql options - open the options")
         ns.Print("/dql replace - toggle replacing the map quest log")
+        ns.Print("/dql theme - switch between the dark and standard colours")
     end
 end

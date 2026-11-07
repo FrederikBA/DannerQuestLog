@@ -64,6 +64,14 @@ local L = {
     QUEST_COMPLETED = "%s completed!",
     PARTY_ON = PARTY_QUEST_STATUS_ON or "Party members on quest:",
     PARTY_NONE = PARTY_QUEST_STATUS_NONE or "No party members on quest",
+    THEME_BUTTON = "Theme: %s",
+    THEME_TOOLTIP = "Colour theme: %s\nClick to switch to %s.",
+    ALL = ALL or "All",
+    QUEST_COUNT = "Quests: %d/%d",
+    ABANDON_SHORT = "Abandon",
+    SHARE_SHORT = "Share",
+    MAP = "Map",
+    MAP_TOOLTIP = "Show the selected quest on the world map.",
     HELP_CLICKS = "Shift-click: track / link to chat\nCtrl-click: post progress to chat\nCtrl-Shift-click: track only this quest\nRight-click: more options",
 }
 ns.L = L
@@ -81,6 +89,8 @@ ns.DEFAULTS = {
     restoreOnSelect = true,   -- selecting a quest opens the details pane
     minimizeOnClose = false,  -- closing the window folds the details pane
     hideCompletedObjectives = false,
+    theme = "standard",       -- "standard" (the game's window look) or "dark" (flat)
+    styleVersion = 0,         -- bumped when a restyle should reset the theme once
     scale = 1,
     opacity = 0.95,           -- background opacity
     announceComplete = false, -- "<quest> completed!" + sound
@@ -263,9 +273,16 @@ ns.On("ADDON_LOADED", function(_, name)
     DannerQuestLogCharDB = CopyDefaults(ns.CHAR_DEFAULTS, DannerQuestLogCharDB or {})
     ns.db = DannerQuestLogDB
     ns.cdb = DannerQuestLogCharDB
+    -- Style 2 (Blizzard window look): start everyone on it once; the dark
+    -- theme stays one click away in the options.
+    if (ns.db.styleVersion or 0) < 2 then
+        ns.db.theme = "standard"
+        ns.db.styleVersion = 2
+    end
 end)
 
 ns.On("PLAYER_LOGIN", function()
+    ns.SetTheme(ns.ThemeName())
     ns.CreateWindow()
     ns.ApplyReplacement()
 end)
